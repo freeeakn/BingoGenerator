@@ -14,6 +14,7 @@ from .routes import auth, game, websockets, achievements
 from .core.database import engine
 from .models.models import Base
 import uvicorn
+import os
 
 # Создаем таблицы в базе данных
 Base.metadata.create_all(bind=engine)
@@ -53,10 +54,13 @@ app = FastAPI(
 # Настройка мониторинга (перед добавлением middleware)
 LogConfig.setup_monitoring(app)
 
+# Получаем список разрешенных origins из переменных окружения или используем значение по умолчанию
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+
 # Настройка CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # В продакшене заменить на конкретные домены
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

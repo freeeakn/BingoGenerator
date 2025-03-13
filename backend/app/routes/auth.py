@@ -69,16 +69,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         raise credentials_exception
     return user
 
-@router.post("/register", response_model=UserSchema, 
+@router.post("/register", response_model=Token, 
     summary="Регистрация нового пользователя",
     description="""
     Создает нового пользователя в системе.
     
     - Проверяет уникальность email и username
     - Хэширует пароль перед сохранением
-    - Возвращает созданного пользователя
+    - Возвращает токены доступа
     """,
-    response_description="Созданный пользователь"
+    response_description="JWT токены доступа"
 )
 async def register(user: UserCreate, db: Session = Depends(get_db)):
     """
@@ -89,7 +89,7 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
         db: Сессия базы данных
         
     Returns:
-        User: Созданный пользователь
+        Token: Объект с access и refresh токенами
         
     Raises:
         HTTPException: Если email уже зарегистрирован или username занят
@@ -117,7 +117,15 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    return db_user
+    
+    access_token = create_access_token({"sub": user.email})
+    refresh_token = create_refresh_token({"sub": user.email})
+    
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
 
 @router.post("/token", response_model=Token,
     summary="Получение токена доступа",
